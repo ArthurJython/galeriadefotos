@@ -13,6 +13,12 @@ function showMessage(text, type) {
   message.className = `form-message ${type}`;
 }
 
+function failLogin(text) {
+  showMessage(text, 'error');
+  form.password.value = '';
+  form.password.focus();
+}
+
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
@@ -49,12 +55,13 @@ form.addEventListener('submit', async (e) => {
     });
 
     if (res.ok) {
-      const data = await res.json();
-      showMessage(`Bem-vindo, ${data.username}!`, 'success');
+      const data = await res.json().catch(() => ({}));
+      const name = data.username || 'usuário';
+      showMessage(`Bem-vindo, ${name}!`, 'success');
     } else if (res.status === 429) {
-      showMessage('Muitas tentativas. Aguarde um instante e tente novamente.', 'error');
+      failLogin('Muitas tentativas. Aguarde um instante e tente novamente.');
     } else {
-      showMessage('Usuário ou senha inválidos.', 'error');
+      failLogin('Usuário ou senha inválidos.');
     }
   } catch (err) {
     showMessage('Não foi possível conectar ao servidor.', 'error');

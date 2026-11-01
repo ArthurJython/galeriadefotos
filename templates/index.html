@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' https://picsum.photos data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
   <title>Galeria — Entrar</title>
-  <link rel="stylesheet" href="static/styles.css">
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <main class="split">
@@ -35,7 +38,7 @@
           <p>Entre para acessar sua galeria.</p>
         </header>
 
-        <form id="login-form" novalidate>
+        <form id="login-form" novalidate autocomplete="off">
           <div class="field">
             <label for="username">Usuário</label>
             <input id="username" name="username" type="text" placeholder="seu.usuario"
@@ -49,13 +52,6 @@
                    autocomplete="current-password" maxlength="128" required>
           </div>
 
-          <div class="row">
-            <label class="checkbox">
-              <input type="checkbox" name="remember">
-              <span>Lembrar de mim</span>
-            </label>
-          </div>
-
           <button type="submit" class="btn-primary">Entrar</button>
 
           <p class="form-message" id="form-message" role="alert" aria-live="polite"></p>
@@ -64,6 +60,6 @@
     </section>
   </main>
 
-  <script src="static/app.js"></script>
+  <script src="/static/app.js"></script>
 </body>
 </html>
