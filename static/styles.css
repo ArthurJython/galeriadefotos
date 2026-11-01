@@ -1,0 +1,174 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+:root {
+  --bg: #0f1115;
+  --surface: #ffffff;
+  --text: #1a1d24;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --danger: #ef4444;
+  --radius-lg: 24px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow: 0 20px 50px -20px rgba(15, 17, 21, 0.35);
+}
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Layout ---------- */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  height: 100vh;
+  height: 100dvh;         /* altura real no mobile (barra dinâmica) */
+  overflow: hidden;        /* nada empurra o layout pra fora da tela */
+}
+
+/* ---------- Lado esquerdo ---------- */
+.photo-panel {
+  position: relative;
+  overflow: hidden;
+  background: #0b0d11;
+  min-height: 0;           /* permite encolher como item de grid */
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(3, 1fr);  /* 6 fotos = 3 linhas explícitas */
+  gap: 6px;
+  height: 100%;
+  padding: 6px;
+}
+
+.photo-grid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  filter: brightness(0.75) saturate(1.05);
+}
+
+.photo-overlay {
+  position: absolute;
+  inset: 0;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(180deg, rgba(11,13,17,0.15) 0%, rgba(11,13,17,0.85) 100%);
+  color: #fff;
+  pointer-events: none;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; }
+.brand-mark { font-size: 22px; color: #a5b4fc; }
+.brand-tagline { margin: 0; font-size: 15px; opacity: 0.85; max-width: 320px; }
+
+/* ---------- Lado direito ---------- */
+.form-panel {
+  display: flex;
+  padding: 40px;
+  min-height: 0;
+  overflow-y: auto;        /* em telas curtas, scrolla só aqui dentro */
+  background: radial-gradient(circle at 50% 0%, #1a1d24 0%, #0f1115 60%);
+}
+
+.login-card {
+  margin: auto;            /* centraliza sem cortar o topo quando transborda */
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 40px 32px;
+  box-shadow: var(--shadow);
+}
+
+.login-header h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; }
+.login-header p  { margin: 0 0 28px; color: var(--muted); font-size: 14px; }
+
+.field { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; font-weight: 500; color: var(--text); }
+
+.field input {
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  background: #fafafa;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  color: var(--text);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+}
+
+.field input.invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+}
+
+.checkbox { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
+.checkbox input { accent-color: var(--primary); }
+
+.link { color: var(--primary); text-decoration: none; font-weight: 500; }
+.link:hover { text-decoration: underline; }
+
+.btn-primary {
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background .15s, transform .05s;
+}
+.btn-primary:hover  { background: var(--primary-hover); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.form-message {
+  margin: 14px 0 0;
+  font-size: 13px;
+  min-height: 18px;
+  color: var(--muted);
+}
+.form-message.error   { color: var(--danger); }
+.form-message.success { color: #16a34a; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+    height: auto;          /* no mobile deixa a página rolar normalmente */
+    min-height: 100dvh;
+    overflow: visible;
+  }
+  .photo-panel { display: none; }
+  .form-panel {
+    padding: 24px;
+    min-height: 100dvh;
+    overflow-y: visible;
+  }
+  .login-card { padding: 32px 24px; }
+}
