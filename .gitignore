@@ -4,3 +4,5 @@ venv/
 .venv/
 users.db
 .env
+.secret_key
+uploads/

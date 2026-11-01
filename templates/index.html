@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; img-src 'self' https://picsum.photos data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
+        content="default-src 'self'; img-src 'self' https://picsum.photos data:; media-src 'self' https://commondatastorage.googleapis.com; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
   <title>Galeria — Entrar</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <main class="split">
-    <!-- Lado esquerdo: fotos públicas -->
     <aside class="photo-panel" aria-hidden="true">
       <div class="photo-grid">
         <img src="https://picsum.photos/id/1015/600/800" alt="">
@@ -30,7 +29,6 @@
       </div>
     </aside>
 
-    <!-- Lado direito: formulário -->
     <section class="form-panel">
       <div class="login-card">
         <header class="login-header">
@@ -53,7 +51,6 @@
           </div>
 
           <button type="submit" class="btn-primary">Entrar</button>
-
           <p class="form-message" id="form-message" role="alert" aria-live="polite"></p>
         </form>
       </div>

@@ -3,6 +3,11 @@ const message = document.getElementById('form-message');
 
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,32}$/;
 
+// Anti-spam (UX): cooldown após tentativa falha.
+// Defesa real fica no backend (rate limit de 5/min por IP).
+const LOGIN_COOLDOWN_MS = 2000;
+let lastAttemptAt = 0;
+
 function clearMessage() {
   message.textContent = '';
   message.className = 'form-message';
@@ -17,10 +22,20 @@ function failLogin(text) {
   showMessage(text, 'error');
   form.password.value = '';
   form.password.focus();
+  lastAttemptAt = Date.now();
 }
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+
+  // Cooldown: se ainda estiver no período de espera, nem tenta
+  const now = Date.now();
+  const elapsed = now - lastAttemptAt;
+  if (lastAttemptAt && elapsed < LOGIN_COOLDOWN_MS) {
+    const wait = Math.ceil((LOGIN_COOLDOWN_MS - elapsed) / 1000);
+    showMessage(`Aguarde ${wait}s antes de tentar novamente.`, 'error');
+    return;
+  }
 
   const username = form.username.value.trim();
   const password = form.password.value;
@@ -58,6 +73,9 @@ form.addEventListener('submit', async (e) => {
       const data = await res.json().catch(() => ({}));
       const name = data.username || 'usuário';
       showMessage(`Bem-vindo, ${name}!`, 'success');
+      setTimeout(() => {
+        window.location.href = '/galeria';
+      }, 700);
     } else if (res.status === 429) {
       failLogin('Muitas tentativas. Aguarde um instante e tente novamente.');
     } else {

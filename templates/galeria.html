@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; img-src 'self' https://picsum.photos data: blob:; media-src 'self' https://commondatastorage.googleapis.com blob:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
+  <title>Galeria — Minha conta</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="/static/galeria.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand">
+          <span class="brand-mark">◉</span>
+          <span class="brand-name">Galeria</span>
+        </div>
+      </div>
+
+      <div class="user-card">
+        <div class="avatar">{{ username[0]|upper }}</div>
+        <div class="user-info">
+          <div class="user-name">{{ username }}</div>
+          <div class="user-sub">Minha conta</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a href="#" class="nav-item active" data-view="albums">
+          <span class="nav-icon">▦</span><span class="nav-label">Álbuns</span>
+        </a>
+        <a href="#" class="nav-item" data-view="special">
+          <span class="nav-icon">✦</span><span class="nav-label">Momentos especiais</span>
+        </a>
+        <a href="#" class="nav-item" data-view="favorites">
+          <span class="nav-icon">♥</span><span class="nav-label">Favoritos</span>
+        </a>
+        <a href="#" class="nav-item" data-view="settings">
+          <span class="nav-icon">⚙</span><span class="nav-label">Configurações</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="btn-logout" id="btn-logout">Sair</button>
+      </div>
+    </aside>
+
+    <main class="content" id="content">
+      <header class="topbar">
+        <h1 id="page-title">Meus álbuns</h1>
+        <input type="search" class="search" id="search" placeholder="Buscar álbum...">
+      </header>
+
+      <section class="view" id="view"></section>
+    </main>
+  </div>
+
+  <!-- Modal de upload -->
+  <div class="modal-overlay" id="upload-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header class="modal-header">
+        <h2 id="modal-title">Adicionar mídia</h2>
+        <button class="modal-close" id="upload-close" aria-label="Fechar">×</button>
+      </header>
+
+      <div class="modal-body">
+        <label for="upload-file" class="drop-zone" id="drop-zone">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span class="drop-zone-title">Arraste um arquivo ou clique</span>
+          <span class="drop-zone-sub">JPG, PNG, GIF, WEBP, MP4 ou WEBM — até 50 MB</span>
+          <input type="file" id="upload-file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" hidden>
+        </label>
+
+        <div class="file-info" id="file-info" hidden>
+          <div class="file-name" id="file-name"></div>
+          <div class="file-size" id="file-size"></div>
+        </div>
+
+        <input type="text" id="upload-title" class="upload-title"
+               placeholder="Título (opcional)" maxlength="100" autocomplete="off">
+
+        <div class="progress" id="progress" hidden>
+          <div class="progress-bar" id="progress-bar"></div>
+        </div>
+
+        <p class="upload-error" id="upload-error" role="alert"></p>
+      </div>
+
+      <footer class="modal-footer">
+        <button class="btn-secondary" id="upload-cancel">Cancelar</button>
+        <button class="btn-primary" id="upload-submit" disabled>Enviar</button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="/static/galeria.js"></script>
+</body>
+</html>
