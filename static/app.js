@@ -1,10 +1,49 @@
+// ---------- Mosaico diagonal infinito (só na página de login) ----------
+(function buildMosaic() {
+  const mosaic = document.getElementById('photo-mosaic');
+  if (!mosaic) return;
+
+  // Padrão base 2×2 (4 fotos diferentes)
+  const pattern = [
+    ['travel-a', 'travel-b'],
+    ['travel-c', 'travel-d'],
+  ];
+
+  // Gradientes de fallback (aparecem enquanto a foto carrega,
+  // ou para sempre se ela falhar — o layout funciona do mesmo jeito)
+  const gradients = [
+    'linear-gradient(135deg, #f4a261 0%, #e76f51 100%)',
+    'linear-gradient(135deg, #2a9d8f 0%, #e9c46a 100%)',
+    'linear-gradient(135deg, #e76f51 0%, #2a9d8f 100%)',
+    'linear-gradient(135deg, #e9c46a 0%, #f4a261 100%)',
+  ];
+
+  let gi = 0;
+  // Tile 2× em cada direção → grid final 4×4 (16 fotos)
+  for (let ry = 0; ry < 2; ry++) {
+    for (const row of pattern) {
+      for (let rx = 0; rx < 2; rx++) {
+        for (const seed of row) {
+          const img = document.createElement('img');
+          img.alt = '';
+          img.loading = 'eager';
+          img.decoding = 'async';
+          img.style.background = gradients[gi % gradients.length];
+          gi += 1;
+          img.addEventListener('error', () => { img.removeAttribute('src'); });
+          img.src = `https://picsum.photos/seed/${seed}/800/600`;
+          mosaic.appendChild(img);
+        }
+      }
+    }
+  }
+})();
+
+// ---------- Login ----------
 const form    = document.getElementById('login-form');
 const message = document.getElementById('form-message');
 
 const USERNAME_RE = /^[a-zA-Z0-9._-]{3,32}$/;
-
-// Anti-spam (UX): cooldown após tentativa falha.
-// Defesa real fica no backend (rate limit de 5/min por IP).
 const LOGIN_COOLDOWN_MS = 2000;
 let lastAttemptAt = 0;
 
@@ -28,7 +67,6 @@ function failLogin(text) {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
 
-  // Cooldown: se ainda estiver no período de espera, nem tenta
   const now = Date.now();
   const elapsed = now - lastAttemptAt;
   if (lastAttemptAt && elapsed < LOGIN_COOLDOWN_MS) {

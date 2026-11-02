@@ -5,55 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; img-src 'self' https://picsum.photos data:; media-src 'self' https://commondatastorage.googleapis.com; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
+        content="default-src 'self'; img-src 'self' https://picsum.photos https://fastly.picsum.photos data:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
   <title>Galeria — Entrar</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
   <main class="split">
     <aside class="photo-panel" aria-hidden="true">
-      <div class="photo-grid">
-        <img src="https://picsum.photos/id/1015/600/800" alt="">
-        <img src="https://picsum.photos/id/1039/600/600" alt="">
-        <img src="https://picsum.photos/id/1043/600/600" alt="">
-        <img src="https://picsum.photos/id/1018/600/800" alt="">
-        <img src="https://picsum.photos/id/1024/600/600" alt="">
-        <img src="https://picsum.photos/id/1050/600/800" alt="">
-      </div>
-      <div class="photo-overlay">
-        <div class="brand">
-          <span class="brand-mark">◉</span>
-          <span class="brand-name">Galeria</span>
-        </div>
-        <p class="brand-tagline">Sua coleção de memórias, organizada.</p>
-      </div>
+      <div class="photo-mosaic" id="photo-mosaic"></div>
     </aside>
 
     <section class="form-panel">
-      <div class="login-card">
+      <form id="login-form" class="login-form" novalidate autocomplete="off">
         <header class="login-header">
           <h1>Bem-vindo de volta</h1>
           <p>Entre para acessar sua galeria.</p>
         </header>
 
-        <form id="login-form" novalidate autocomplete="off">
-          <div class="field">
-            <label for="username">Usuário</label>
-            <input id="username" name="username" type="text" placeholder="seu.usuario"
-                   autocomplete="username" autocapitalize="none" spellcheck="false"
-                   maxlength="32" required>
-          </div>
+        <div class="field">
+          <label for="username">Usuário</label>
+          <input id="username" name="username" type="text" placeholder="seu.usuario"
+                 autocomplete="username" autocapitalize="none" spellcheck="false"
+                 maxlength="32" required>
+        </div>
 
-          <div class="field">
-            <label for="password">Senha</label>
-            <input id="password" name="password" type="password" placeholder="••••••••"
-                   autocomplete="current-password" maxlength="128" required>
-          </div>
+        <div class="field">
+          <label for="password">Senha</label>
+          <input id="password" name="password" type="password" placeholder="••••••••"
+                 autocomplete="current-password" maxlength="128" required>
+        </div>
 
-          <button type="submit" class="btn-primary">Entrar</button>
-          <p class="form-message" id="form-message" role="alert" aria-live="polite"></p>
-        </form>
-      </div>
+        <button type="submit" class="btn-primary">Entrar</button>
+        <p class="form-message" id="form-message" role="alert" aria-live="polite"></p>
+      </form>
     </section>
   </main>
 

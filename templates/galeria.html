@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; img-src 'self' https://picsum.photos data: blob:; media-src 'self' https://commondatastorage.googleapis.com blob:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
+        content="default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self'; script-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'">
   <title>Galeria — Minha conta</title>
   <link rel="stylesheet" href="/static/styles.css">
   <link rel="stylesheet" href="/static/galeria.css">
@@ -35,6 +35,9 @@
         <a href="#" class="nav-item" data-view="special">
           <span class="nav-icon">✦</span><span class="nav-label">Momentos especiais</span>
         </a>
+        <a href="#" class="nav-item" data-view="loose">
+          <span class="nav-icon">✧</span><span class="nav-label">Fotos soltas</span>
+        </a>
         <a href="#" class="nav-item" data-view="favorites">
           <span class="nav-icon">♥</span><span class="nav-label">Favoritos</span>
         </a>
@@ -51,53 +54,125 @@
     <main class="content" id="content">
       <header class="topbar">
         <h1 id="page-title">Meus álbuns</h1>
-        <input type="search" class="search" id="search" placeholder="Buscar álbum...">
+        <input type="search" class="search" id="search"
+               placeholder="Buscar em tudo..." autocomplete="off">
       </header>
 
       <section class="view" id="view"></section>
     </main>
   </div>
 
-  <!-- Modal de upload -->
+  <!-- Modal: upload -->
   <div class="modal-overlay" id="upload-modal" hidden>
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal" role="dialog" aria-modal="true">
       <header class="modal-header">
-        <h2 id="modal-title">Adicionar mídia</h2>
+        <h2 id="upload-modal-title">Adicionar mídia</h2>
         <button class="modal-close" id="upload-close" aria-label="Fechar">×</button>
       </header>
-
       <div class="modal-body">
         <label for="upload-file" class="drop-zone" id="drop-zone">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="17 8 12 3 7 8"/>
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          <span class="drop-zone-title">Arraste um arquivo ou clique</span>
-          <span class="drop-zone-sub">JPG, PNG, GIF, WEBP, MP4 ou WEBM — até 50 MB</span>
+          <span class="drop-zone-title">Escolha um arquivo</span>
+          <span class="drop-zone-sub">ou arraste · até 50 MB · jpg, png, gif, webp, mp4, webm</span>
           <input type="file" id="upload-file" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" hidden>
         </label>
-
         <div class="file-info" id="file-info" hidden>
-          <div class="file-name" id="file-name"></div>
-          <div class="file-size" id="file-size"></div>
+          <span class="file-name" id="file-name"></span>
+          <span class="file-size" id="file-size"></span>
         </div>
-
         <input type="text" id="upload-title" class="upload-title"
                placeholder="Título (opcional)" maxlength="100" autocomplete="off">
-
         <div class="progress" id="progress" hidden>
           <div class="progress-bar" id="progress-bar"></div>
         </div>
-
         <p class="upload-error" id="upload-error" role="alert"></p>
       </div>
-
       <footer class="modal-footer">
         <button class="btn-secondary" id="upload-cancel">Cancelar</button>
         <button class="btn-primary" id="upload-submit" disabled>Enviar</button>
       </footer>
     </div>
+  </div>
+
+  <!-- Modal: editar álbum -->
+  <div class="modal-overlay" id="album-edit-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2>Editar álbum</h2>
+        <button class="modal-close" id="album-edit-close" aria-label="Fechar">×</button>
+      </header>
+      <div class="modal-body">
+        <label class="field-label">
+          Nome
+          <input type="text" id="album-edit-name" class="upload-title" maxlength="80">
+        </label>
+        <label class="field-label">
+          Descrição
+          <input type="text" id="album-edit-desc" class="upload-title" maxlength="300">
+        </label>
+        <label class="toggle-row">
+          <input type="checkbox" id="album-edit-special">
+          <span>Marcar como momento especial</span>
+        </label>
+        <p class="upload-error" id="album-edit-error" role="alert"></p>
+      </div>
+      <footer class="modal-footer">
+        <button class="btn-secondary" id="album-edit-delete" type="button">Excluir</button>
+        <button class="btn-secondary" id="album-edit-cancel">Cancelar</button>
+        <button class="btn-primary" id="album-edit-save">Salvar</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Modal: editar mídia -->
+  <div class="modal-overlay" id="media-edit-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <header class="modal-header">
+        <h2>Editar mídia</h2>
+        <button class="modal-close" id="media-edit-close" aria-label="Fechar">×</button>
+      </header>
+      <div class="modal-body">
+        <div class="media-preview" id="media-preview"></div>
+
+        <label class="field-label">
+          Título
+          <input type="text" id="media-edit-title" class="upload-title" maxlength="100">
+        </label>
+
+        <label class="field-label">
+          Álbum
+          <select id="media-edit-album" class="upload-title"></select>
+        </label>
+
+        <label class="toggle-row">
+          <input type="checkbox" id="media-edit-fav">
+          <span>Favoritar</span>
+        </label>
+
+        <div class="replace-row">
+          <button class="btn-secondary" id="media-edit-replace-btn" type="button">Substituir arquivo…</button>
+          <input type="file" id="media-edit-replace-input" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" hidden>
+        </div>
+
+        <p class="upload-error" id="media-edit-error" role="alert"></p>
+      </div>
+      <footer class="modal-footer">
+        <button class="btn-secondary" id="media-edit-delete" type="button">Excluir</button>
+        <button class="btn-secondary" id="media-edit-cancel">Cancelar</button>
+        <button class="btn-primary" id="media-edit-save">Salvar</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Lightbox de imagem -->
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="Visualizar imagem">
+    <button class="lightbox-close" id="lightbox-close" aria-label="Fechar">×</button>
+    <div class="lightbox-title" id="lightbox-title"></div>
+    <img class="lightbox-image" id="lightbox-image" src="" alt="">
   </div>
 
   <script src="/static/galeria.js"></script>

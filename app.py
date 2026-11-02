@@ -25,22 +25,16 @@ def _load_secret_key():
 
 
 app.secret_key = _load_secret_key()
-
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_HTTPONLY"] = True
-# app.config["SESSION_COOKIE_SECURE"] = True  # produção HTTPS
-
-# 51 MB no request (50 MB do arquivo + ~1 MB de overhead multipart)
 app.config["MAX_CONTENT_LENGTH"] = 51 * 1024 * 1024
 
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
-
 BASE_DIR = os.path.dirname(__file__)
 DB_PATH = os.path.join(BASE_DIR, "users.db")
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# Whitelist de MIME (verificado por magic bytes, não pelo cliente)
 ALLOWED_MIMES = {
     "image/jpeg", "image/png", "image/gif", "image/webp",
     "video/mp4", "video/webm",
@@ -49,49 +43,34 @@ ALLOWED_MIMES = {
 LOGIN_ATTEMPTS = {}
 MAX_ATTEMPTS = 5
 WINDOW_SECONDS = 60
-
 DUMMY_HASH = generate_password_hash("nunca-usado-apenas-para-tempo")
 
-
-# ---------- Seed ----------
-# Senhas de DEMONSTRAÇÃO. Não são segredo.
 SEED_USERS = [
     ("alice", "AliceSenhaForte!2026"),
     ("bruno", "BrunoSenhaForte!2026"),
     ("carla", "CarlaSenhaForte!2026"),
 ]
 
-# name, description, is_special, num_photos
 ALBUMS_BY_USER = {
     "alice": [
-        ("Verão 2025",      "Os melhores dias na praia",      1, 6),
-        ("Família",         "Momentos com quem amamos",       1, 5),
-        ("Viagem Itália",   "Roma, Florença e Veneza",        0, 4),
-        ("Trabalho",        "Eventos e conferências",         0, 3),
+        ("Verão 2025",    "Os melhores dias na praia",   1),
+        ("Família",       "Momentos com quem amamos",    1),
+        ("Viagem Itália", "Roma, Florença e Veneza",     0),
+        ("Trabalho",      "Eventos e conferências",      0),
     ],
     "bruno": [
-        ("Montanha",        "Trilhas e picos",                1, 4),
-        ("Urban",           "A cidade em detalhes",           0, 4),
-        ("Animais",         "Meus companheiros",              1, 3),
-        ("Viagens",         "Pelo mundo afora",               0, 4),
+        ("Montanha", "Trilhas e picos",        1),
+        ("Urban",    "A cidade em detalhes",   0),
+        ("Animais",  "Meus companheiros",      1),
+        ("Natureza", "Verde por todo lado",    0),
     ],
     "carla": [
-        ("Praia 2026",      "Ondas e sol",                    1, 4),
-        ("Flores",          "Jardim de casa",                 0, 3),
-        ("Comida",          "Receitas favoritas",             0, 3),
-        ("Amigos",          "Risadas e encontros",            1, 4),
+        ("Praia 2026", "Ondas e sol",         1),
+        ("Flores",     "Jardim de casa",      0),
+        ("Comida",     "Receitas favoritas",  0),
+        ("Amigos",     "Risadas e encontros", 1),
     ],
 }
-
-# Vídeos de exemplo (Google sample bucket, público, sem chave, com Range)
-SAMPLE_VIDEOS = [
-    ("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg"),
-    ("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg"),
-    ("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-     "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg"),
-]
 
 
 # ---------- Banco ----------
@@ -112,23 +91,23 @@ def init_db():
             user_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             description TEXT,
-            cover_url TEXT,
             is_special INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
+    # album_id NULL = foto/vídeo solto (sem álbum). user_id sempre obrigatório.
     c.execute("""
         CREATE TABLE IF NOT EXISTS medias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            album_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            album_id INTEGER,
             type TEXT NOT NULL CHECK(type IN ('photo','video')),
-            url TEXT,
-            file_path TEXT,
-            mime_type TEXT,
+            file_path TEXT NOT NULL,
+            mime_type TEXT NOT NULL,
             size_bytes INTEGER,
-            thumb_url TEXT,
             title TEXT,
             is_favorite INTEGER NOT NULL DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(id),
             FOREIGN KEY (album_id) REFERENCES albums(id)
         )
     """)
@@ -147,33 +126,12 @@ def init_db():
 
         c.execute("SELECT COUNT(*) FROM albums WHERE user_id = ?", (user_id,))
         if c.fetchone()[0] == 0:
-            for name, desc, is_special, n in ALBUMS_BY_USER.get(username, []):
-                slug = f"{username}-{name.lower().replace(' ', '-')}"
-                cover = f"https://picsum.photos/seed/{slug}-cover/800/600"
+            for name, desc, is_special in ALBUMS_BY_USER.get(username, []):
                 c.execute(
-                    "INSERT INTO albums (user_id, name, description, cover_url, is_special) VALUES (?, ?, ?, ?, ?)",
-                    (user_id, name, desc, cover, is_special),
+                    "INSERT INTO albums (user_id, name, description, is_special) "
+                    "VALUES (?, ?, ?, ?)",
+                    (user_id, name, desc, is_special),
                 )
-                album_id = c.lastrowid
-
-                # Fotos (externas, Picsum)
-                for i in range(n):
-                    url = f"https://picsum.photos/seed/{slug}-{i}/1200/1200"
-                    is_fav = 1 if (is_special and i < 2) else 0
-                    c.execute(
-                        "INSERT INTO medias (album_id, type, url, title, is_favorite) "
-                        "VALUES (?, 'photo', ?, ?, ?)",
-                        (album_id, url, f"Foto {i+1}", is_fav),
-                    )
-
-                # Vídeo de exemplo (externo) em álbuns especiais
-                if is_special:
-                    vid_url, poster = SAMPLE_VIDEOS[album_id % len(SAMPLE_VIDEOS)]
-                    c.execute(
-                        "INSERT INTO medias (album_id, type, url, thumb_url, title, is_favorite) "
-                        "VALUES (?, 'video', ?, ?, ?, 1)",
-                        (album_id, vid_url, poster, "Vídeo do álbum"),
-                    )
 
     conn.commit()
     conn.close()
@@ -188,22 +146,20 @@ def get_user(username):
     return {"username": row[0], "password_hash": row[1]} if row else None
 
 
-def media_row_to_dict(row):
-    """row: id, type, url, file_path, thumb_url, title, is_favorite"""
-    id_, type_, url_, file_path, thumb_url, title, is_fav = row
-    display_url = f"/api/media/{id_}/raw" if file_path else url_
+def media_to_dict(row):
+    """row: id, type, file_path, title, is_favorite, album_id, album_name"""
+    id_, type_, file_path, title, is_fav, album_id, album_name = row
     return {
         "id": id_,
         "type": type_,
-        "url": display_url,
-        "thumb_url": thumb_url,
+        "url": f"/api/media/{id_}/raw",
         "title": title,
         "is_favorite": bool(is_fav),
-        "is_upload": bool(file_path),
+        "album_id": album_id,
+        "album_name": album_name,
     }
 
 
-# ---------- Rate limit ----------
 def is_rate_limited(ip):
     now = time.time()
     attempts = [t for t in LOGIN_ATTEMPTS.get(ip, []) if now - t < WINDOW_SECONDS]
@@ -219,13 +175,36 @@ def require_login():
     return "username" not in session
 
 
-def owns_album(cursor, album_id, username):
-    cursor.execute("""
-        SELECT a.id FROM albums a
-        JOIN users u ON u.id = a.user_id
-        WHERE a.id = ? AND u.username = ?
-    """, (album_id, username))
+def current_user_id(cursor):
+    cursor.execute("SELECT id FROM users WHERE username = ?", (session["username"],))
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
+def user_owns_album(cursor, album_id, user_id):
+    cursor.execute("SELECT 1 FROM albums WHERE id = ? AND user_id = ?", (album_id, user_id))
     return cursor.fetchone() is not None
+
+
+def user_owns_media(cursor, media_id, user_id):
+    cursor.execute("SELECT 1 FROM medias WHERE id = ? AND user_id = ?", (media_id, user_id))
+    return cursor.fetchone() is not None
+
+
+def score_text(text, query):
+    if not text or not query:
+        return 0
+    t = text.lower()
+    q = query.lower()
+    if t == q:
+        return 100
+    if t.startswith(q):
+        return 80
+    if f" {q} " in f" {t} ":
+        return 60
+    if q in t:
+        return 40
+    return 0
 
 
 # ---------- Rotas de página ----------
@@ -290,8 +269,10 @@ def list_albums():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
     c.execute("""
-        SELECT a.id, a.name, a.description, a.cover_url, a.is_special,
-               (SELECT COUNT(*) FROM medias WHERE album_id = a.id) AS count
+        SELECT a.id, a.name, a.description, a.is_special,
+               (SELECT COUNT(*) FROM medias WHERE album_id = a.id) AS count,
+               (SELECT id FROM medias WHERE album_id = a.id AND type = 'photo'
+                ORDER BY is_favorite DESC, id ASC LIMIT 1) AS cover_id
         FROM albums a
         JOIN users u ON u.id = a.user_id
         WHERE u.username = ?
@@ -302,42 +283,141 @@ def list_albums():
 
     return jsonify([
         {
-            "id": r[0], "name": r[1], "description": r[2] or "",
-            "cover_url": r[3], "is_special": bool(r[4]), "fotos_count": r[5],
+            "id": r[0],
+            "name": r[1],
+            "description": r[2] or "",
+            "is_special": bool(r[3]),
+            "fotos_count": r[4],
+            "cover_url": f"/api/media/{r[5]}/raw" if r[5] else None,
         }
         for r in rows
     ])
 
 
-@app.route("/api/albums/<int:album_id>/medias")
-def list_medias(album_id):
+@app.route("/api/albums/<int:album_id>", methods=["PATCH"])
+def update_album(album_id):
     if require_login():
         return jsonify({"error": "Não autenticado"}), 401
 
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-    c.execute("""
-        SELECT a.id, a.name FROM albums a
-        JOIN users u ON u.id = a.user_id
-        WHERE a.id = ? AND u.username = ?
-    """, (album_id, session["username"]))
-    album = c.fetchone()
-    if not album:
+    uid = current_user_id(c)
+    if not uid or not user_owns_album(c, album_id, uid):
         conn.close()
         return jsonify({"error": "Álbum não encontrado"}), 404
 
-    c.execute("""
-        SELECT id, type, url, file_path, thumb_url, title, is_favorite
-        FROM medias WHERE album_id = ?
-        ORDER BY type DESC, id
-    """, (album_id,))
-    rows = c.fetchall()
+    data = request.get_json(silent=True) or {}
+    updates = []
+    params = []
+
+    if "name" in data:
+        name = (data.get("name") or "").strip()
+        if not name or len(name) > 80:
+            conn.close()
+            return jsonify({"error": "Nome inválido"}), 400
+        updates.append("name = ?")
+        params.append(name)
+
+    if "description" in data:
+        desc = (data.get("description") or "").strip()[:300]
+        updates.append("description = ?")
+        params.append(desc)
+
+    if "is_special" in data:
+        updates.append("is_special = ?")
+        params.append(1 if data["is_special"] else 0)
+
+    if not updates:
+        conn.close()
+        return jsonify({"error": "Nada para atualizar"}), 400
+
+    params.append(album_id)
+    c.execute(f"UPDATE albums SET {', '.join(updates)} WHERE id = ?", params)
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True}), 200
+
+
+@app.route("/api/albums/<int:album_id>", methods=["DELETE"])
+def delete_album(album_id):
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+    if not uid or not user_owns_album(c, album_id, uid):
+        conn.close()
+        return jsonify({"error": "Álbum não encontrado"}), 404
+
+    # Mídias do álbum viram soltas
+    c.execute("UPDATE medias SET album_id = NULL WHERE album_id = ?", (album_id,))
+    c.execute("DELETE FROM albums WHERE id = ?", (album_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True}), 200
+
+
+# ---------- Mídias ----------
+def _fetch_medias(cursor, user_id, album_id_filter, only_null=False):
+    if only_null:
+        cursor.execute("""
+            SELECT m.id, m.type, m.file_path, m.title, m.is_favorite, NULL, NULL
+            FROM medias m
+            WHERE m.user_id = ? AND m.album_id IS NULL
+            ORDER BY m.is_favorite DESC, m.id DESC
+        """, (user_id,))
+    else:
+        cursor.execute("""
+            SELECT m.id, m.type, m.file_path, m.title, m.is_favorite,
+                   m.album_id, a.name
+            FROM medias m
+            LEFT JOIN albums a ON a.id = m.album_id
+            WHERE m.user_id = ? AND m.album_id = ?
+            ORDER BY m.type DESC, m.is_favorite DESC, m.id
+        """, (user_id, album_id_filter))
+    return [media_to_dict(r) for r in cursor.fetchall()]
+
+
+@app.route("/api/albums/<int:album_id>/medias")
+def list_album_medias(album_id):
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+    if not uid or not user_owns_album(c, album_id, uid):
+        conn.close()
+        return jsonify({"error": "Álbum não encontrado"}), 404
+
+    c.execute("SELECT name FROM albums WHERE id = ?", (album_id,))
+    album_name = c.fetchone()[0]
+
+    medias = _fetch_medias(c, uid, album_id)
     conn.close()
 
     return jsonify({
-        "album": {"id": album[0], "name": album[1]},
-        "medias": [media_row_to_dict(r) for r in rows],
+        "album": {"id": album_id, "name": album_name},
+        "medias": medias,
     })
+
+
+@app.route("/api/medias/loose")
+def list_loose_medias():
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+    if not uid:
+        conn.close()
+        return jsonify({"error": "Não autenticado"}), 401
+
+    medias = _fetch_medias(c, uid, None, only_null=True)
+    conn.close()
+    return jsonify({"medias": medias})
 
 
 @app.route("/api/medias/favorites")
@@ -347,37 +427,161 @@ def list_favorites():
 
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+    uid = current_user_id(c)
     c.execute("""
-        SELECT m.id, m.type, m.url, m.file_path, m.thumb_url, m.title, m.is_favorite, a.name
+        SELECT m.id, m.type, m.file_path, m.title, m.is_favorite, m.album_id, a.name
         FROM medias m
-        JOIN albums a ON a.id = m.album_id
-        JOIN users u ON u.id = a.user_id
-        WHERE u.username = ? AND m.is_favorite = 1
-        ORDER BY m.id
-    """, (session["username"],))
+        LEFT JOIN albums a ON a.id = m.album_id
+        WHERE m.user_id = ? AND m.is_favorite = 1
+        ORDER BY m.type DESC, m.id DESC
+    """, (uid,))
     rows = c.fetchall()
     conn.close()
-
-    out = []
-    for r in rows:
-        d = media_row_to_dict(r[:7])
-        d["album_name"] = r[7]
-        out.append(d)
-    return jsonify(out)
+    return jsonify([media_to_dict(r) for r in rows])
 
 
 # ---------- Upload ----------
+def _save_upload(cursor, user_id, album_id):
+    """Retorna (dict, status). album_id pode ser None (foto solta)."""
+    if "file" not in request.files:
+        return {"error": "Nenhum arquivo enviado"}, 400
+
+    f = request.files["file"]
+    if not f or f.filename == "":
+        return {"error": "Arquivo inválido"}, 400
+
+    header = f.stream.read(261)
+    f.stream.seek(0)
+    kind = filetype.guess(header)
+    if not kind or kind.mime not in ALLOWED_MIMES:
+        return {"error": "Tipo não aceito. Use jpg/png/gif/webp ou mp4/webm."}, 400
+
+    media_type = "photo" if kind.mime.startswith("image/") else "video"
+    filename = f"{uuid.uuid4().hex}.{kind.extension}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    f.save(filepath)
+
+    size_bytes = os.path.getsize(filepath)
+    if size_bytes > MAX_UPLOAD_BYTES:
+        os.remove(filepath)
+        return {"error": "Arquivo muito grande (máximo 50 MB)"}, 413
+
+    title = (request.form.get("title") or "").strip()[:100] or f.filename[:100]
+
+    cursor.execute("""
+        INSERT INTO medias
+            (user_id, album_id, type, file_path, mime_type, size_bytes, title, is_favorite)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0)
+    """, (user_id, album_id, media_type, filename, kind.mime, size_bytes, title))
+    new_id = cursor.lastrowid
+
+    return {
+        "id": new_id,
+        "type": media_type,
+        "url": f"/api/media/{new_id}/raw",
+        "title": title,
+        "album_id": album_id,
+    }, 201
+
+
 @app.route("/api/albums/<int:album_id>/upload", methods=["POST"])
-def upload_media(album_id):
+def upload_to_album(album_id):
     if require_login():
         return jsonify({"error": "Não autenticado"}), 401
 
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
-
-    if not owns_album(c, album_id, session["username"]):
+    uid = current_user_id(c)
+    if not uid or not user_owns_album(c, album_id, uid):
         conn.close()
         return jsonify({"error": "Álbum não encontrado"}), 404
+
+    payload, status = _save_upload(c, uid, album_id)
+    if status == 201:
+        conn.commit()
+    else:
+        conn.rollback()
+    conn.close()
+    return jsonify(payload), status
+
+
+@app.route("/api/medias/loose/upload", methods=["POST"])
+def upload_loose():
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+    if not uid:
+        conn.close()
+        return jsonify({"error": "Não autenticado"}), 401
+
+    payload, status = _save_upload(c, uid, None)
+    if status == 201:
+        conn.commit()
+    else:
+        conn.rollback()
+    conn.close()
+    return jsonify(payload), status
+
+
+@app.route("/api/medias/<int:media_id>", methods=["PATCH"])
+def update_media(media_id):
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+    if not uid or not user_owns_media(c, media_id, uid):
+        conn.close()
+        return jsonify({"error": "Mídia não encontrada"}), 404
+
+    data = request.get_json(silent=True) or {}
+    updates = []
+    params = []
+
+    if "title" in data:
+        title = (data.get("title") or "").strip()[:100]
+        updates.append("title = ?")
+        params.append(title)
+
+    if "is_favorite" in data:
+        updates.append("is_favorite = ?")
+        params.append(1 if data["is_favorite"] else 0)
+
+    if "album_id" in data:
+        new_album = data["album_id"]
+        if new_album is not None:
+            if not user_owns_album(c, new_album, uid):
+                conn.close()
+                return jsonify({"error": "Álbum de destino não encontrado"}), 404
+        updates.append("album_id = ?")
+        params.append(new_album)
+
+    if not updates:
+        conn.close()
+        return jsonify({"error": "Nada para atualizar"}), 400
+
+    params.append(media_id)
+    c.execute(f"UPDATE medias SET {', '.join(updates)} WHERE id = ?", params)
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True}), 200
+
+
+@app.route("/api/medias/<int:media_id>/replace", methods=["POST"])
+def replace_media(media_id):
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+    if not uid or not user_owns_media(c, media_id, uid):
+        conn.close()
+        return jsonify({"error": "Mídia não encontrada"}), 404
 
     if "file" not in request.files:
         conn.close()
@@ -388,19 +592,18 @@ def upload_media(album_id):
         conn.close()
         return jsonify({"error": "Arquivo inválido"}), 400
 
-    # Magic bytes (não confia no Content-Type do cliente)
     header = f.stream.read(261)
     f.stream.seek(0)
     kind = filetype.guess(header)
     if not kind or kind.mime not in ALLOWED_MIMES:
         conn.close()
-        return jsonify({
-            "error": "Tipo não aceito. Envie jpg/png/gif/webp ou mp4/webm."
-        }), 400
+        return jsonify({"error": "Tipo não aceito."}), 400
 
-    media_type = "photo" if kind.mime.startswith("image/") else "video"
+    # Busca arquivo antigo para apagar
+    c.execute("SELECT file_path, type FROM medias WHERE id = ?", (media_id,))
+    old_path, old_type = c.fetchone()
+    new_type = "photo" if kind.mime.startswith("image/") else "video"
 
-    # Salva com nome aleatório (evita path traversal e colisão)
     filename = f"{uuid.uuid4().hex}.{kind.extension}"
     filepath = os.path.join(UPLOAD_DIR, filename)
     f.save(filepath)
@@ -411,25 +614,51 @@ def upload_media(album_id):
         conn.close()
         return jsonify({"error": "Arquivo muito grande (máximo 50 MB)"}), 413
 
-    title = (request.form.get("title") or "").strip()[:100] or f.filename[:100]
-
     c.execute("""
-        INSERT INTO medias
-            (album_id, type, url, file_path, mime_type, size_bytes, thumb_url, title, is_favorite)
-        VALUES (?, ?, NULL, ?, ?, ?, NULL, ?, 0)
-    """, (album_id, media_type, filename, kind.mime, size_bytes, title))
-    new_id = c.lastrowid
+        UPDATE medias SET file_path = ?, mime_type = ?, size_bytes = ?, type = ?
+        WHERE id = ?
+    """, (filename, kind.mime, size_bytes, new_type, media_id))
+    conn.commit()
+
+    # Remove arquivo antigo do disco
+    try:
+        old_full = os.path.join(UPLOAD_DIR, old_path)
+        if os.path.isfile(old_full):
+            os.remove(old_full)
+    except Exception:
+        pass
+
+    conn.close()
+    return jsonify({"ok": True, "type": new_type}), 200
+
+
+@app.route("/api/medias/<int:media_id>", methods=["DELETE"])
+def delete_media(media_id):
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+    if not uid or not user_owns_media(c, media_id, uid):
+        conn.close()
+        return jsonify({"error": "Mídia não encontrada"}), 404
+
+    c.execute("SELECT file_path FROM medias WHERE id = ?", (media_id,))
+    row = c.fetchone()
+    c.execute("DELETE FROM medias WHERE id = ?", (media_id,))
     conn.commit()
     conn.close()
 
-    return jsonify({
-        "id": new_id,
-        "type": media_type,
-        "url": f"/api/media/{new_id}/raw",
-        "title": title,
-        "mime_type": kind.mime,
-        "size_bytes": size_bytes,
-    }), 201
+    try:
+        if row and row[0]:
+            p = os.path.join(UPLOAD_DIR, row[0])
+            if os.path.isfile(p):
+                os.remove(p)
+    except Exception:
+        pass
+
+    return jsonify({"ok": True}), 200
 
 
 @app.route("/api/media/<int:media_id>/raw")
@@ -439,30 +668,86 @@ def serve_media(media_id):
 
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
+    uid = current_user_id(c)
     c.execute("""
-        SELECT m.file_path, m.mime_type, m.type
-        FROM medias m
-        JOIN albums a ON a.id = m.album_id
-        JOIN users u ON u.id = a.user_id
-        WHERE m.id = ? AND u.username = ?
-    """, (media_id, session["username"]))
+        SELECT file_path, mime_type FROM medias WHERE id = ? AND user_id = ?
+    """, (media_id, uid))
     row = c.fetchone()
     conn.close()
 
-    if not row or not row[0]:
+    if not row:
         return jsonify({"error": "Mídia não encontrada"}), 404
 
     path = os.path.join(UPLOAD_DIR, row[0])
     if not os.path.isfile(path):
         return jsonify({"error": "Arquivo não encontrado"}), 404
 
-    # conditional=True → suporta Range (streaming de vídeo)
     return send_file(
         path,
         mimetype=row[1] or "application/octet-stream",
         conditional=True,
         as_attachment=False,
     )
+
+
+# ---------- Busca global (server-side, com score) ----------
+@app.route("/api/search")
+def search():
+    if require_login():
+        return jsonify({"error": "Não autenticado"}), 401
+
+    q = (request.args.get("q") or "").strip()
+    if not q:
+        return jsonify({"albums": [], "medias": [], "query": ""})
+
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    uid = current_user_id(c)
+
+    c.execute("""
+        SELECT a.id, a.name, a.description, a.is_special,
+               (SELECT COUNT(*) FROM medias WHERE album_id = a.id),
+               (SELECT id FROM medias WHERE album_id = a.id AND type='photo'
+                ORDER BY is_favorite DESC, id LIMIT 1)
+        FROM albums a WHERE a.user_id = ?
+    """, (uid,))
+    album_rows = c.fetchall()
+
+    c.execute("""
+        SELECT m.id, m.type, m.file_path, m.title, m.is_favorite, m.album_id, a.name
+        FROM medias m LEFT JOIN albums a ON a.id = m.album_id
+        WHERE m.user_id = ?
+    """, (uid,))
+    media_rows = c.fetchall()
+    conn.close()
+
+    albums_out = []
+    for r in album_rows:
+        s = max(score_text(r[1], q), int(score_text(r[2], q) * 0.6))
+        if s > 0:
+            albums_out.append({
+                "id": r[0], "name": r[1], "description": r[2] or "",
+                "is_special": bool(r[3]), "fotos_count": r[4],
+                "cover_url": f"/api/media/{r[5]}/raw" if r[5] else None,
+                "score": s,
+            })
+
+    medias_out = []
+    for r in media_rows:
+        s = score_text(r[3], q)
+        if s > 0:
+            d = media_to_dict(r)
+            d["score"] = s
+            medias_out.append(d)
+
+    albums_out.sort(key=lambda x: x["score"], reverse=True)
+    medias_out.sort(key=lambda x: x["score"], reverse=True)
+
+    return jsonify({
+        "albums": albums_out[:50],
+        "medias": medias_out[:60],
+        "query": q,
+    })
 
 
 @app.errorhandler(413)

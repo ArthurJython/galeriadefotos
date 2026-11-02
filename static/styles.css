@@ -1,18 +1,35 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 :root {
-  --bg: #0f1115;
-  --surface: #ffffff;
-  --text: #1a1d24;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --primary: #6366f1;
-  --primary-hover: #4f46e5;
+  --bg: #14171f;
+  --bg-elev: #1c2029;
+  --sunset-1: #f4a261;
+  --sunset-2: #e76f51;
+  --ocean: #2a9d8f;
+  --sand: #e9c46a;
+
+  --primary: #e76f51;
+  --primary-hover: #d15a3d;
+  --primary-soft: rgba(231, 111, 81, 0.14);
+  --accent: #f4a261;
   --danger: #ef4444;
+  --success: #2a9d8f;
+
+  --text: #f5f1ea;
+  --text-dim: #a8a29e;
+  --muted: #78716c;
+
+  --border: rgba(245, 241, 234, 0.08);
+  --border-strong: rgba(245, 241, 234, 0.16);
+
   --radius-lg: 24px;
   --radius-md: 14px;
   --radius-sm: 10px;
-  --shadow: 0 20px 50px -20px rgba(15, 17, 21, 0.35);
+  --radius-full: 999px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 html, body { height: 100%; margin: 0; }
@@ -22,85 +39,102 @@ body {
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  overflow: hidden;
 }
 
 /* ---------- Layout ---------- */
 .split {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.05fr 1fr;
   height: 100vh;
-  height: 100dvh;         /* altura real no mobile (barra dinâmica) */
-  overflow: hidden;        /* nada empurra o layout pra fora da tela */
+  height: 100dvh;
+  overflow: hidden;
 }
 
-/* ---------- Lado esquerdo ---------- */
+/* ---------- Lado esquerdo: mosaico diagonal infinito ---------- */
 .photo-panel {
   position: relative;
   overflow: hidden;
   background: #0b0d11;
-  min-height: 0;           /* permite encolher como item de grid */
+  min-height: 0;
 }
 
-.photo-grid {
+.photo-mosaic {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 200%;
+  height: 200%;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(3, 1fr);  /* 6 fotos = 3 linhas explícitas */
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
   gap: 6px;
-  height: 100%;
   padding: 6px;
+  animation: diagonalScroll 60s linear infinite;
+  will-change: transform;
 }
 
-.photo-grid img {
-  display: block;
+@keyframes diagonalScroll {
+  from { transform: translate(0, -50%); }
+  to   { transform: translate(-50%, 0); }
+}
+
+.photo-mosaic img {
   width: 100%;
   height: 100%;
-  min-width: 0;
-  min-height: 0;
   object-fit: cover;
+  display: block;
   border-radius: var(--radius-md);
-  filter: brightness(0.75) saturate(1.05);
+  filter: brightness(0.92) saturate(1.05);
 }
 
-.photo-overlay {
-  position: absolute;
-  inset: 0;
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  background: linear-gradient(180deg, rgba(11,13,17,0.15) 0%, rgba(11,13,17,0.85) 100%);
-  color: #fff;
-  pointer-events: none;
-}
-
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; }
-.brand-mark { font-size: 22px; color: #a5b4fc; }
-.brand-tagline { margin: 0; font-size: 15px; opacity: 0.85; max-width: 320px; }
-
-/* ---------- Lado direito ---------- */
+/* ---------- Lado direito: formulário (sem card) ---------- */
 .form-panel {
   display: flex;
   padding: 40px;
   min-height: 0;
-  overflow-y: auto;        /* em telas curtas, scrolla só aqui dentro */
-  background: radial-gradient(circle at 50% 0%, #1a1d24 0%, #0f1115 60%);
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 30% 0%, rgba(231,111,81,0.06) 0%, transparent 50%),
+    radial-gradient(circle at 80% 100%, rgba(42,157,143,0.05) 0%, transparent 50%),
+    var(--bg);
 }
 
-.login-card {
-  margin: auto;            /* centraliza sem cortar o topo quando transborda */
+.login-form {
+  margin: auto;
   width: 100%;
-  max-width: 420px;
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 40px 32px;
-  box-shadow: var(--shadow);
+  max-width: 400px;
+  animation: formIn 0.7s var(--ease-out) both;
 }
 
-.login-header h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.02em; }
-.login-header p  { margin: 0 0 28px; color: var(--muted); font-size: 14px; }
+@keyframes formIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-.field { margin-bottom: 18px; display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 13px; font-weight: 500; color: var(--text); }
+.login-header h1 {
+  font-size: 26px;
+  margin: 0 0 6px;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.login-header p {
+  margin: 0 0 32px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.field {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
 
 .field input {
   height: 46px;
@@ -108,59 +142,73 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 15px;
-  background: #fafafa;
-  transition: border-color .15s, box-shadow .15s, background .15s;
+  background: rgba(255,255,255,0.03);
+  transition: border-color .25s var(--ease-out),
+              box-shadow .25s var(--ease-out),
+              background .25s var(--ease-out);
   color: var(--text);
+  font-family: inherit;
 }
-
+.field input::placeholder { color: var(--muted); }
 .field input:focus {
   outline: none;
   border-color: var(--primary);
-  background: #fff;
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  background: rgba(255,255,255,0.05);
+  box-shadow: 0 0 0 4px var(--primary-soft);
 }
-
 .field input.invalid {
   border-color: var(--danger);
-  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
 }
-
-.checkbox { display: flex; align-items: center; gap: 8px; color: var(--muted); cursor: pointer; }
-.checkbox input { accent-color: var(--primary); }
-
-.link { color: var(--primary); text-decoration: none; font-weight: 500; }
-.link:hover { text-decoration: underline; }
 
 .btn-primary {
   width: 100%;
   height: 46px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--sunset-2) 0%, var(--sunset-1) 100%);
   color: #fff;
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
-  transition: background .15s, transform .05s;
+  transition: transform .2s var(--ease-spring), box-shadow .25s var(--ease-out), filter .2s var(--ease-out);
+  font-family: inherit;
+  position: relative;
+  overflow: hidden;
+  margin-top: 4px;
 }
-.btn-primary:hover  { background: var(--primary-hover); }
-.btn-primary:active { transform: translateY(1px); }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent 50%);
+  opacity: 0;
+  transition: opacity .25s var(--ease-out);
+}
+.btn-primary:hover:not(:disabled) {
+  filter: brightness(1.06);
+  box-shadow: 0 8px 24px -8px rgba(231, 111, 81, 0.5);
+  transform: translateY(-1px);
+}
+.btn-primary:hover:not(:disabled)::after { opacity: 1; }
+.btn-primary:active:not(:disabled) { transform: translateY(0) scale(0.99); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .form-message {
   margin: 14px 0 0;
   font-size: 13px;
   min-height: 18px;
   color: var(--muted);
+  transition: color .25s var(--ease-out);
 }
 .form-message.error   { color: var(--danger); }
-.form-message.success { color: #16a34a; }
+.form-message.success { color: var(--success); }
 
 /* ---------- Responsivo ---------- */
 @media (max-width: 900px) {
   .split {
     grid-template-columns: 1fr;
-    height: auto;          /* no mobile deixa a página rolar normalmente */
+    height: auto;
     min-height: 100dvh;
     overflow: visible;
   }
@@ -170,5 +218,9 @@ body {
     min-height: 100dvh;
     overflow-y: visible;
   }
-  .login-card { padding: 32px 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-mosaic { animation: none; }
+  .login-form { animation: none; }
 }
